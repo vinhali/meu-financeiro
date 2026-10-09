@@ -1,0 +1,30 @@
+# Proxy reverso da VPS. Vive em /opt/proxy na VM, ao lado de:
+#   conf.d/vps.conf   → cópia de ops/nginx/vps.conf
+#   ssl/              → certificados (*.crt, *.key) e o diretório letsencrypt/
+#   certbot/          → webroot do desafio ACME
+#   sites/site/      → site estático site.example.com
+services:
+  nginx:
+    image: nginx:latest
+    container_name: proxy_nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./certbot:/var/www/certbot:ro
+      - ./sites/site:/var/www/site:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+      - proxy_net
+
+networks:
+  # Rede compartilhada entre o proxy e o container do app.
+  proxy_net:
+    external: true

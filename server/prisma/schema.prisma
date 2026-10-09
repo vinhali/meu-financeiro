@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A scenario is a full, independent copy of the planning grid + debts + bridge.
+// Exactly one scenario has isBase = true ("Plano base"); it cannot be deleted
+// and is the source used by "Restaurar projeção original".
+model Scenario {
+  id                   String         @id @default(cuid())
+  name                 String
+  isBase               Boolean        @default(false)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  items                LineItem[]
+  debts                Debt[]
+  bridge               Bridge?
+  texts                ScenarioText[]
+  // JSON array of month labels for the planning grid, e.g. ["JUL",...,"DEZ"].
+  // LineItem.values has the same length/order as this array.
+  months               String         @default("[\"JUL\",\"AGO\",\"SET\",\"OUT\",\"NOV\",\"DEZ\"]")
+  // JSON array of month labels for the "Ponte até PLR" projection.
+  bridgeMonths         String         @default("[\"Janeiro/2027\",\"Fevereiro/2027\",\"Março/2027\"]")
+  // Total guardado até hoje na reserva de emergência (valor único, não por mês).
+  emergencyReserve     Float          @default(0)
+  lastAutoPaymentMonth String?
+
+  @@map("scenarios")
+  monthArchives MonthArchive[]
+}
+
+// One row of the grid (an "Entrada" or "Saída"). `values` is a JSON-encoded
+// array of 6 numbers, one per month: [JUL, AGO, SET, OUT, NOV, DEZ].
+model LineItem {
+  id                String   @id @default(cuid())
+  scenarioId        String
+  scenario          Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  section           String // "entrada" | "saida"
+  order             Int
+  name              String
+  obs               String   @default("")
+  applyDissidio     Boolean  @default(false) // entrada: recebe o reajuste do dissídio na "Ponte até PLR"
+  excludeFromBridge Boolean  @default(false) // saida: não é repetida nos meses da "Ponte até PLR"
+  // saida: gasto controlável — o valor do mês é um limite, acompanhado contra o gasto real (Open Finance)
+  controllable      Boolean  @default(false)
+  values            String // JSON array of 6 floats
+  actualValues      String   @default("[]") // JSON array with realized values
+  paidMarks         PaidMark[]
+
+  @@index([scenarioId])
+  @@map("line_items")
+}
+
+// Conta marcada como paga à mão, num mês. Vale até a sincronização do dia seguinte: se nenhum
+// banco confirmar o pagamento, a marcação é desfeita.
+model PaidMark {
+  id       String   @id @default(cuid())
+  itemId   String
+  item     LineItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  month    String // "AAAA-MM"
+  markedAt DateTime @default(now())
+
+  @@unique([itemId, month])
+  @@map("paid_marks")
+}
+
+// One card in the "Mapa completo de dívidas" section.
+model Debt {
+  id               String        @id @default(cuid())
+  scenarioId       String
+  scenario         Scenario      @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  order            Int
+  severity         String // sev1 | sev2 | sev3 | sev4
+  severityLabel    String // badge text, e.g. "SEV1 · A MAIS CARA · QUITAR PRIMEIRO"
+  name             String
+  balance          String // "Saldo" - main amount, e.g. "R$ 24.756,61"
+  paidInstallments Int           @default(0) // parcelas já pagas
+  balanceNote      String        @default("")
+  installment      String        @default("") // "Parcela", e.g. "36x ~R$ 1.053"
+  rate             String        @default("") // "Taxa", e.g. "2,9% a.m. · CET ≤3,1%"
+  note             String        @default("") // "Observação"
+  action           String        @default("") // "Ação recomendada" / rastreio
+  status           String        @default("ativa") // ativa | quitada | monitorar
+  dueDay           Int? // dia do vencimento mensal (1-31)
+  payments         DebtPayment[]
+
+  @@index([scenarioId])
+  @@map("debts")
+}
+
+model DebtPayment {
+  id          String   @id @default(cuid())
+  debtId      String
+  debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  paidAt      DateTime
+  amount      Float
+  installment Int?
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([debtId, paidAt])
+  @@map("debt_payments")
+}
+
+// "Ponte até PLR" projection inputs (Jan/Fev/Mar 2027), one per scenario.
+model Bridge {
+  id              String   @id @default(cuid())
+  scenarioId      String   @unique
+  scenario        Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  plr             Float    @default(0)
+  dissidioPercent Float    @default(0)
+
+  @@map("bridges")
+}
+
+// Editable structured text content for the Header and the Regras/Alocação/
+// Mudança sections. `key` identifies which section; `content` is a
+// JSON-encoded object whose shape depends on `key` (see seedData.ts
+// DEFAULT_TEXTS). If no row exists for a (scenarioId, key) pair, the backend
+// falls back to DEFAULT_TEXTS[key] — rows are only created on first edit.
+model ScenarioText {
+  id         String   @id @default(cuid())
+  scenarioId String
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  key        String // "header" | "rules" | "allocation" | "mudanca"
+  content    String // JSON, shape depends on key
+
+  @@unique([scenarioId, key])
+  @@map("scenario_texts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Open Finance (Pluggy / MeuPluggy)
+//
+// Espelho local, somente leitura, do que a Pluggy entrega. Regras destas tabelas:
+// - o `id` é sempre o id da Pluggy (sincronização idempotente via upsert);
+// - valores monetários são inteiros em centavos (`*Cents`), nunca Float/String;
+// - `raw` guarda o JSON original completo, para não perder campos ainda não modelados.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Um "item" da Pluggy: a conexão autorizada com uma instituição.
+model OfConnection {
+  id                String    @id
+  connectorId       Int
+  connectorName     String
+  connectorImageUrl String?
+  status            String // UPDATED | UPDATING | LOGIN_ERROR | OUTDATED | WAITING_USER_INPUT | ...
+  executionStatus   String?
+  errorCode         String?
+  errorMessage      String?
+  consentExpiresAt  DateTime?
+  providerUpdatedAt DateTime? // item.lastUpdatedAt: última coleta feita pela Pluggy
+  nextAutoSyncAt    DateTime?
+  lastSyncedAt      DateTime? // última sincronização nossa concluída sem erro
+  raw               String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accounts    OfAccount[]
+  investments OfInvestment[]
+  loans       OfLoan[]
+  syncRuns    OfSyncRun[]
+
+  @@map("of_connections")
+}
+
+// Conta corrente, poupança ou cartão de crédito.
+model OfAccount {
+  id                        String       @id
+  connectionId              String
+  connection                OfConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  type                      String // BANK | CREDIT
+  subtype                   String // CHECKING_ACCOUNT | SAVINGS_ACCOUNT | CREDIT_CARD
+  name                      String
+  marketingName             String?
+  number                    String?
+  ownerName                 String?
+  currencyCode              String       @default("BRL")
+  balanceCents              BigInt // BANK: saldo; CREDIT: valor da fatura em aberto
+  // Somente cartão de crédito
+  creditLimitCents          BigInt?
+  availableCreditLimitCents BigInt?
+  minimumPaymentCents       BigInt?
+  balanceCloseDate          DateTime?
+  balanceDueDate            DateTime?
+  cardBrand                 String?
+  raw                       String
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+
+  transactions OfTransaction[]
+  bills        OfCreditCardBill[]
+
+  @@index([connectionId])
+  @@map("of_accounts")
+}
+
+model OfTransaction {
+  id                           String    @id
+  accountId                    String
+  account                      OfAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date                         DateTime
+  description                  String
+  descriptionRaw               String?
+  type                         String // DEBIT | CREDIT
+  status                       String // POSTED | PENDING
+  amountCents                  BigInt // sinal exatamente como a Pluggy envia; use `type` para a direção
+  currencyCode                 String    @default("BRL")
+  // Valor convertido para a moeda da conta (compras internacionais).
+  amountInAccountCurrencyCents BigInt?
+  balanceCents                 BigInt? // saldo após o lançamento, quando informado
+  category                     String?
+  categoryId                   String?
+  operationType                String? // PIX | TED | BOLETO | ...
+  providerCode                 String?
+  // Cartão de crédito
+  billId                       String?
+  installmentNumber            Int?
+  totalInstallments            Int?
+  purchaseDate                 DateTime?
+  // Estabelecimento / contraparte
+  merchantName                 String?
+  merchantCnpj                 String?
+  counterpartyName             String?
+  counterpartyDocument         String?
+  paymentMethod                String?
+  raw                          String
+  providerCreatedAt            DateTime?
+  providerUpdatedAt            DateTime?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+
+  @@index([accountId, date])
+  @@index([date])
+  @@index([categoryId])
+  @@index([billId])
+  @@map("of_transactions")
+}
+
+model OfCreditCardBill {
+  id                  String    @id
+  accountId           String
+  account             OfAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  dueDate             DateTime
+  closingDate         DateTime?
+  totalAmountCents    BigInt
+  currencyCode        String    @default("BRL")
+  minimumPaymentCents BigInt?
+  allowsInstallments  Boolean?
+  raw                 String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([accountId, dueDate])
+  @@map("of_credit_card_bills")
+}
+
+model OfInvestment {
+  id                  String       @id
+  connectionId        String
+  connection          OfConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  type                String // FIXED_INCOME | MUTUAL_FUND | EQUITY | ETF | SECURITY | COE | OTHER
+  subtype             String?
+  name                String
+  code                String?
+  isin                String?
+  number              String?
+  issuer              String?
+  status              String?
+  currencyCode        String       @default("BRL")
+  balanceCents        BigInt // posição atual (bruta)
+  amountOriginalCents BigInt? // valor aplicado
+  amountProfitCents   BigInt?
+  quantity            Float?
+  unitValue           Float?
+  rate                Float?
+  rateType            String?
+  purchaseDate        DateTime?
+  dueDate             DateTime?
+  raw                 String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([connectionId])
+  @@map("of_investments")
+}
+
+// Empréstimos e financiamentos (contratos de crédito).
+model OfLoan {
+  id                      String       @id
+  connectionId            String
+  connection              OfConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  contractNumber          String?
+  productName             String?
+  type                    String?
+  currencyCode            String       @default("BRL")
+  contractAmountCents     BigInt?
+  outstandingBalanceCents BigInt?
+  cet                     Float? // custo efetivo total (1 = 100%)
+  totalInstallments       Int?
+  paidInstallments        Int?
+  dueInstallments         Int?
+  pastDueInstallments     Int?
+  contractDate            DateTime?
+  dueDate                 DateTime?
+  raw                     String
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  @@index([connectionId])
+  @@map("of_loans")
+}
+
+// Histórico de execuções da sincronização (uma linha por conexão por execução).
+model OfSyncRun {
+  id           String        @id @default(cuid())
+  connectionId String?
+  connection   OfConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  trigger      String // schedule | manual | cli
+  status       String // running | success | partial | error
+  startedAt    DateTime      @default(now())
+  finishedAt   DateTime?
+  stats        String        @default("{}") // JSON: contagens por recurso e avisos
+  error        String?
+
+  @@index([startedAt])
+  @@map("of_sync_runs")
+}
+
+// Rótulo dado pelo usuário a um estabelecimento ("BRADESCO" -> "Seguro do carro").
+// `key` é a chave normalizada da descrição (ver merchantKey em openfinance/cards.ts).
+model OfMerchantLabel {
+  key       String   @id
+  name      String?
+  kind      String?
+  // Categoria escolhida pelo usuário (id de CATEGORY_CHOICES); vence a do banco e a das marcas.
+  category  String?
+  updatedAt DateTime @updatedAt
+
+  @@map("of_merchant_labels")
+}
+
+// Mês retirado da planilha. Tirar a coluna é só visual: os valores ficam guardados aqui, como
+// histórico, e podem voltar para a planilha.
+model MonthArchive {
+  id         String   @id @default(cuid())
+  scenarioId String
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  label      String // rótulo da coluna ("OUT")
+  month      String? // "AAAA-MM", quando o rótulo é um mês reconhecível
+  position   Int // posição que a coluna ocupava
+  rows       String // JSON: [{ itemId, name, section, order, controllable, value, actualValue }]
+  // JSON { entradas, saidas, saldo }: os totais que a planilha mostrava para o mês ao ser retirado
+  // (já sem o que estava nas faturas). Nulo em registros sem essa informação.
+  totals     String?
+  archivedAt DateTime @default(now())
+
+  @@index([scenarioId])
+  @@map("month_archives")
+}
+
+// Alerta gerado pelas regras (vencimento, limite, saldo, dados dos bancos). `key` identifica o
+// fato: o mesmo fato só gera um alerta, por mais vezes que as regras rodem.
+model Alert {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  kind       String
+  severity   String // "urgent" | "attention" | "info"
+  title      String
+  body       String
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+  sentAt     DateTime? // enviado por Telegram/e-mail (na hora ou no resumo do dia)
+  resolvedAt DateTime? // dispensado pelo usuário
+
+  @@index([createdAt])
+  @@map("alerts")
+}
+
+// Configuração simples chave/valor (conversa do Telegram, último resumo enviado, limiares).
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}

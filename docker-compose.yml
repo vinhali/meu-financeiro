@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    image: meu-financeiro:latest
+    container_name: meu-financeiro
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: file:/app/data/financeiro.db
+      PORT: 8080
+    volumes:
+      # A pasta ./data precisa pertencer ao uid 1000 (usuário "node" do container).
+      - ./data:/app/data
+    ports:
+      # Mapeado só em localhost — acesso público é via nginx (financeiro.example.com)
+      - '127.0.0.1:${HOST_PORT:-8080}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node/.npm
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+      - default
+      - proxy_net
+
+networks:
+  default:
+  proxy_net:
+    external: true

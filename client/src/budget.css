@@ -1,0 +1,191 @@
+/* Planejado × realizado (Visão Geral). Azul = magnitude; verde/âmbar/vermelho = estado, sempre com rótulo. */
+.bx h3{font-size:16px;font-weight:600;letter-spacing:-.2px;margin-bottom:12px}
+.bx h3 small{font-size:12.5px;font-weight:400;color:var(--muted);margin-left:6px}
+.bx-sub{font-size:13px;color:var(--muted);margin:3px 0 12px;line-height:1.55;max-width:760px}
+.bx-empty{color:var(--muted);font-size:14px;margin-top:12px}
+.bx-months{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--inset);width:fit-content;max-width:100%}
+.bx-months button{border:0;border-radius:7px;background:transparent;color:var(--muted);padding:7px 13px;font-size:13px;font-weight:500;cursor:pointer}
+.bx-months button.active{color:var(--accent-2);background:var(--accent-soft)}
+.bx-months button small{margin-left:6px;font-size:12px;opacity:.8}
+.bx-months button small+small::before{content:'· '}
+
+.bx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.bx-panel{border:1px solid var(--line);border-radius:var(--r-l);background:var(--panel);padding:19px 20px;min-width:0;margin-top:14px}
+.bx-grid .bx-panel{margin-top:0}
+.bx-limits,.bx-fixed{list-style:none;display:flex;flex-direction:column}
+.bx-limits{gap:20px}
+.bx-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;font-size:15px}
+.bx-row span{min-width:0;font-weight:600}
+.bx-row span small{display:block;font-size:12.5px;font-weight:400;color:var(--muted);line-height:1.45}
+.bx-row b{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;text-align:right}
+.bx-row b small{font-size:12.5px;font-weight:400;color:var(--muted)}
+
+.bx-track{height:10px;border-radius:5px;background:var(--track);overflow:hidden;margin-top:8px}
+.bx-fill{height:100%;border-radius:0 5px 5px 0;background:var(--blue)}
+.bx-meter.ok .bx-fill{background:var(--green)}
+.bx-meter.warn .bx-fill{background:var(--amber)}
+.bx-meter.high .bx-fill{background:var(--red)}
+.bx-meter span{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;font-size:12.5px;color:var(--muted);margin-top:6px}
+.bx-meter em{font-style:normal}
+.bx-note{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.bx-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bx-chip{font-size:13px;line-height:1.3;padding:4px 9px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--line-2);color:var(--txt-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.bx-chip b{font-weight:600;color:var(--txt);margin-left:4px;font-variant-numeric:tabular-nums}
+
+.bx-fixed li{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.bx-fixed li:last-child{border-bottom:0}
+.bx-fixed li>div{flex:1;min-width:0}
+/* Marca de pago: o símbolo ✓ e o texto "pago em…" carregam o estado; a cor só reforça. */
+.bx-check{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-3);display:grid;place-items:center;font-size:14px;font-weight:700;margin-top:1px}
+.bx-fixed li.paid .bx-check{border-color:var(--green);color:var(--green)}
+.bx-fixed li.pending .bx-row span{font-weight:500}
+.bx-candidates{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:7px}
+.bx-candidates small{font-size:12.5px;color:var(--muted)}
+.bx-candidates button{background:none;border:0;padding:0;color:var(--txt-2);font-size:13px;text-align:left;cursor:pointer;line-height:1.45}
+.bx-candidates u{color:var(--blue);text-underline-offset:2px}
+
+@media(max-width:900px){.bx-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.bx-panel{padding:16px}.bx-row{font-size:14px}}
+
+/* ── Dicas do Open Finance dentro da planilha ── */
+.ph{display:flex;justify-content:flex-end;align-items:center;gap:7px;padding:0 17px 9px;margin-top:-8px;font-family:var(--sans);font-size:12.5px;line-height:1.3;color:var(--muted);white-space:nowrap}
+.ph.ok{color:var(--green)}
+.ph.warn{color:var(--amber)}
+.ph.high{color:var(--red)}
+.ph-bar{width:46px;height:4px;border-radius:2px;background:var(--track);overflow:hidden;flex:none}
+.ph-bar i{display:block;height:100%;background:var(--blue)}
+.ph.ok .ph-bar i{background:var(--green)}
+.ph.warn .ph-bar i{background:var(--amber)}
+.ph.high .ph-bar i{background:var(--red)}
+.ph button,.ph-toolbar button{background:none;border:1px solid var(--line-2);border-radius:6px;color:var(--blue);font-size:12.5px;padding:2px 8px;cursor:pointer}
+.ph button:hover,.ph-toolbar button:hover{border-color:var(--blue)}
+.ph-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 14px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.ph-toolbar button{font-size:13px;padding:5px 11px}
+
+/* ── Linha de gasto controlável ── gasto real em destaque; o limite é o campo editável. */
+.pc{padding:8px 17px 2px;text-align:right}
+.pc .ph{padding:0 0 8px;margin-top:4px}
+.pc-spent{font-family:var(--sans);font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;color:var(--txt);white-space:nowrap}
+.pc-spent small{font-size:12px;font-weight:400;color:var(--muted);margin-right:7px}
+.pc-limit{display:flex;justify-content:flex-end;align-items:center;gap:7px;margin-top:3px}
+.pc-limit span{font-size:12px;color:var(--muted)}
+td.num .pc-limit input{width:84px;min-width:0;padding:3px 7px;font-size:13px;border:1px solid var(--line-2);border-radius:6px;background:var(--inset);color:var(--txt-2)}
+td.num .pc-limit input:focus{border-color:var(--green);background:var(--inset);box-shadow:none}
+td.num .pc-limit.solo input{font-size:15px;width:104px;padding:6px 9px;color:var(--txt)}
+td.cat .cat-ctl{display:block;margin-top:3px;background:none;border:0;padding:1px 5px;font-size:12px;color:var(--faint);cursor:pointer;text-align:left;border-radius:4px;opacity:0}
+tr:hover .cat-ctl,tr:focus-within .cat-ctl,td.cat .cat-ctl.on{opacity:1}
+td.cat .cat-ctl:hover{color:var(--txt);background:var(--panel-2)}
+td.cat .cat-ctl.on{color:var(--green)}
+td.cat .cat-rule{font-size:12px;color:var(--faint);padding:1px 5px;line-height:1.35;white-space:normal}
+@media(hover:none){td.cat .cat-ctl{opacity:1}}
+.pc-total{font-size:12.5px;color:var(--txt-2);padding:0 0 9px;margin-top:-3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pc-total small{display:block;font-size:12px;color:var(--muted);white-space:normal;line-height:1.35}
+/* Valor já coberto pela fatura do cartão: riscado e apagado, porque não entra no total. */
+td.num .covered input{text-decoration:line-through;color:var(--faint)}
+.ph{flex-wrap:wrap}
+.ph-note{flex-basis:100%;text-align:right;color:var(--muted)}
+/* As dicas quebram linha em vez de alargar a coluna: os meses precisam caber lado a lado. */
+.ph,.pc-total,.pc-spent{white-space:normal}
+.ph>span{min-width:0;text-align:right}
+td.num{max-width:340px}
+/* Limites e contas rolam dentro do painel: a lista longa não empurra a planilha para baixo. */
+.bx-grid .bx-panel{display:flex;flex-direction:column}
+.bx-grid .bx-limits,.bx-grid .bx-fixed{max-height:460px;overflow-y:auto;overscroll-behavior:contain;padding-right:10px;margin-right:-6px;scrollbar-width:thin;scrollbar-color:var(--line-3) transparent}
+.bx-months{margin-top:16px}
+/* A dica principal de cada célula é uma etiqueta; as observações seguem como texto abaixo dela. */
+.ph{gap:6px 8px;padding-bottom:11px}
+.ph>span:not(.ph-note):not(.ph-bar){display:inline-block;padding:3px 10px;border-radius:999px;background:var(--chip);box-shadow:inset 0 0 0 1px var(--line-2);color:var(--txt-2);font-size:12.5px;line-height:1.45}
+.ph.ok>span:not(.ph-note):not(.ph-bar){background:rgba(47,227,170,.10);box-shadow:inset 0 0 0 1px rgba(47,227,170,.32);color:var(--green)}
+.ph.warn>span:not(.ph-note):not(.ph-bar){background:rgba(246,185,74,.10);box-shadow:inset 0 0 0 1px rgba(246,185,74,.32);color:var(--amber)}
+.ph.high>span:not(.ph-note):not(.ph-bar){background:rgba(255,114,133,.10);box-shadow:inset 0 0 0 1px rgba(255,114,133,.32);color:var(--red)}
+.ph button{border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:600;border-color:rgba(34,184,245,.45);color:var(--accent-2)}
+.ph button:hover{background:var(--accent-soft);border-color:var(--accent-2)}
+/* Célula de gasto controlável: gasto · "de" · limite numa linha; barra; etiquetas. */
+.pc{padding:12px 0 0;text-align:right}
+.pc-top{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:0 18px}
+.pc-top b{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pc-top span{font-size:12.5px;color:var(--muted)}
+td.num .pc-top input{width:92px;min-width:0;padding:5px 9px;font-size:14px;border:1px solid var(--line-2);border-radius:8px;background:var(--inset);color:var(--txt-2)}
+td.num .pc-top input:focus{border-color:var(--accent);background:var(--inset);box-shadow:none}
+.pc-bar{height:5px;border-radius:3px;background:var(--track);overflow:hidden;margin:9px 18px 0}
+.pc-bar i{display:block;height:100%;border-radius:3px;background:var(--blue)}
+.pc-bar.ok i{background:var(--green)}
+.pc-bar.warn i{background:var(--amber)}
+.pc-bar.high i{background:var(--red)}
+.pc .tags{margin-top:9px}
+/* Valor fora do total: riscado em vermelho, para ler de relance que ele não entra na soma. */
+td.num .covered input{color:rgba(255,114,133,.62);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:2px}
+td.num .covered input:focus{color:var(--txt);text-decoration:none}
+/* ── Limites, versão enxuta ── nome e valor; barra; uma linha com a situação e o que abrir. */
+.bx-limits{gap:22px}
+.bx h3 small{white-space:nowrap}
+.bx-row span[title]{cursor:help}
+.bx-meter .bx-track{margin-top:10px}
+.bx-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px}
+.bx-toggle{margin-left:auto;background:none;border:0;padding:2px 4px;font-size:13px;color:var(--accent-2);border-radius:6px}
+.bx-toggle:hover{background:var(--accent-soft)}
+.bx-places{list-style:none;margin-top:10px;border-top:1px solid var(--line)}
+.bx-places li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.bx-places li:last-child{border-bottom:0}
+.bx-places span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-places small{color:var(--muted);font-size:12.5px}
+.bx-places b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bx-places select{flex:none;max-width:150px;font-size:12.5px;color:var(--muted);background:var(--inset);border:1px solid var(--line-2);border-radius:8px;padding:4px 6px}
+.bx-places select:hover{border-color:var(--line-3);color:var(--txt)}
+/* ── Simulação das previsões ── valor previsto no lugar do digitado, em destaque e sem edição. */
+td.num .sim{padding:16px 18px;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent-2);background:var(--accent-soft)}
+.ph-toolbar.sim-on{background:var(--accent-soft);color:var(--txt-2)}
+
+/* ── Dinheiro em conta e Pix ── abaixo dos limites: o total, cada banco, e o que entrou e saiu por Pix. */
+.bx-cash{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.bx-cash-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 18px;border:1px solid var(--accent-line);border-radius:var(--r-m);background:linear-gradient(140deg,rgba(25,227,168,.12),rgba(34,184,245,.05) 60%,transparent)}
+.bx-cash-total small{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.bx-cash-total b{font-size:clamp(22px,2.2vw,28px);font-weight:700;letter-spacing:-.6px;font-variant-numeric:tabular-nums;color:var(--accent)}
+.bx-banks{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.bx-banks li{display:flex;align-items:center;gap:6px;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--inset);font-size:14px}
+.bx-banks li span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-banks b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bx-pix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bx-pix>div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--inset)}
+.bx-pix small{font-size:12.5px;color:var(--muted)}
+.bx-pix small i{font-style:normal;font-weight:700}
+.bx-pix .in small i{color:var(--green)} .bx-pix .out small i{color:var(--red)}
+.bx-pix>div b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.bx-pix em{font-style:normal;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-pix p{grid-column:1/-1;font-size:12.5px;color:var(--muted);line-height:1.5}
+.bx-cash .neg{color:var(--red)} .bx-cash .pos{color:var(--green)}
+/* Contas: o valor com a situação em etiqueta, no lugar do traço. */
+.bx-fixed .bx-row b{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px 8px}
+.bx-fixed li.pending .bx-row b{font-weight:500;color:var(--txt-2)}
+
+/* Dinheiro e Pix, versão compacta: uma linha para cada; o detalhe (bancos, lista de Pix) abre ao clicar. */
+.bx-cash{gap:8px;margin-top:18px;padding-top:16px}
+.bx-cash-line{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--inset);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.bx-cash-line:hover{border-color:var(--line-3)}
+.bx-cash-line small{font-size:13px;color:var(--muted);margin-right:auto}
+.bx-cash-line b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+.bx-cash-line span{font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bx-cash-line em{font-style:normal;font-size:13px;color:var(--accent-2);white-space:nowrap}
+.bx-banks{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.bx-pixlist{list-style:none;border:1px solid var(--line);border-radius:12px;background:var(--inset);padding:2px 14px;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-3) transparent}
+.bx-pixlist li{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.bx-pixlist li:last-child{border-bottom:0}
+.bx-pixlist small{flex:none;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bx-pixlist span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-pixlist b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bx-pixlist li.empty{color:var(--muted)}
+
+/* ── Contas em colunas ── situação | nome e detalhe | valor | etiqueta, todas alinhadas. */
+.bx-fixed li{display:block;padding:0;border-bottom:1px solid var(--line)}
+.bx-bill{display:grid;grid-template-columns:22px minmax(0,1fr) auto 92px;align-items:center;gap:12px;min-height:54px;padding:8px 0}
+.bx-bill .bx-check{margin-top:0}
+.bx-bill-name{min-width:0;font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-bill-name small{display:block;font-size:12.5px;font-weight:400;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx-fixed li.pending .bx-bill-name{font-weight:500}
+.bx-bill b{text-align:right;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bx-bill b small{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+.bx-fixed li.pending .bx-bill b{font-weight:500;color:var(--txt-2)}
+.bx-bill .tag{justify-self:end;text-align:center}
+.bx-bill-extra{padding-left:34px}
+.bx-bill-extra:empty{display:none}
+.bx-bill-extra>*:last-child{margin-bottom:10px}

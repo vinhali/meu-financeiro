@@ -1,0 +1,1 @@
+ALTER TABLE "debts" ADD COLUMN "paidInstallments" INTEGER NOT NULL DEFAULT 0;

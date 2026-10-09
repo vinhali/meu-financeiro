@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.env
+*.db
+*.db-journal
+server/data/*.db
+server/data/*.db-journal
+.DS_Store
+
+# Prévia local: build copiado para o servidor e cópias do banco (nunca versionar)
+server/public/
+*.db-shm
+*.db-wal
+server/prisma/data/

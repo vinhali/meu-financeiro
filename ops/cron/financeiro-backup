@@ -1,0 +1,5 @@
+# Backup diário do banco do financeiro (snapshot local + Google Drive via rclone)
+# Instalado em /etc/cron.d/financeiro-backup por ops/provision.sh.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+17 3 * * * root /opt/financeiro/ops/backup.sh >> /var/log/financeiro-backup.log 2>&1

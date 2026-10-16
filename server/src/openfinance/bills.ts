@@ -21,6 +21,9 @@ export interface BillTransactionRow {
   billId: string | null;
   billForecast: string | null; // "AAAA-MM", como o banco informa
   isPayment: boolean;
+  // Saldo da fatura anterior que o banco jogou para este ciclo ("Saldo em atraso", "Saldo
+  // anterior"): acontece quando ela foi paga depois do vencimento ou só em parte.
+  isCarryover?: boolean;
   // Compra parcelada: identifica o plano (mesmo estabelecimento e nº de parcelas). O valor
   // distingue planos iguais no mesmo estabelecimento, com tolerância de centavos.
   planKey?: string | null;
@@ -196,8 +199,14 @@ export function computeBills(bills: BillRow[], transactions: BillTransactionRow[
   }
 
   // Pagamentos feitos depois do último fechamento quitam primeiro a última fatura listada;
-  // o que sobrar abate o ciclo seguinte.
-  const lastTotal = Number(last.totalAmountCents);
+  // o que sobrar abate o ciclo seguinte. Se o banco já levou o saldo dela para o ciclo seguinte
+  // (pagamento atrasado ou parcial), essa parte não é mais devida na fatura antiga — está no
+  // ciclo novo, e os pagamentos abatem lá. Sem isso a mesma dívida conta duas vezes.
+  const nextDue = addMonths(lastDue, 1);
+  const carried = transactions
+    .filter((t) => t.isCarryover && t.billId === null && t.type === 'DEBIT' && t.date.getTime() > lastClosing.getTime() && (t.billForecast ? addMonths(t.billForecast, offset) : nextDue) <= nextDue)
+    .reduce((s, t) => s + t.cents, 0);
+  const lastTotal = Math.max(Number(last.totalAmountCents) - carried, 0);
   const paid = Math.max(payments, last.paymentsCents);
   const lastOutstanding = Math.max(lastTotal - paid, 0);
   const excess = Math.max(paid - lastTotal, 0);

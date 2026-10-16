@@ -261,10 +261,12 @@ export async function syncConnection(
       });
       stats.transactions += txs.length;
 
-      // Pendentes que sumiram da janela relida foram cancelados ou viraram outro lançamento.
+      // Pendentes que sumiram da janela relida foram cancelados ou viraram outro lançamento. Parcelas
+      // futuras que sumiram foram antecipadas (o banco as lança de novo na fatura atual) ou canceladas:
+      // se ficassem, a mesma parcela contaria duas vezes.
       if (txs.length > 0) {
         await prisma.ofTransaction.deleteMany({
-          where: { accountId: account.id, status: 'PENDING', date: { gte: from }, id: { notIn: txs.map((t) => t.id) } },
+          where: { accountId: account.id, id: { notIn: txs.map((t) => t.id) }, OR: [{ status: 'PENDING', date: { gte: from } }, { date: { gt: now } }] },
         });
       }
 

@@ -141,6 +141,9 @@ const CARD_PAYMENT_CATEGORY = '05100000';
 // Pagamento de fatura (inclusive antecipado/parcial) não é compra nem estorno. Os bancos nem
 // sempre marcam a categoria, então a descrição do crédito também conta.
 const PAYMENT_DESCRIPTION = /(^|[^a-z])(pagamento|pagto|pgto)([^a-z]|$)/i;
+// Saldo da fatura anterior levado para a atual (ver bills.ts). Juros e multa não entram: são cobrança nova.
+const CARRYOVER_DESCRIPTION = /^\s*saldo (em atraso|anterior|devedor|remanescente|rotativo)|saldo da fatura anterior/i;
+export const isCarryover = (t: Pick<CardTransactionRow, 'type' | 'description'>) => t.type === 'DEBIT' && CARRYOVER_DESCRIPTION.test(t.description);
 export function isBillPayment(t: CardTransactionRow): boolean {
   if (t.categoryId === CARD_PAYMENT_CATEGORY || t.operationType === 'PAGAMENTO_FATURA') return true;
   return t.type === 'CREDIT' && PAYMENT_DESCRIPTION.test(t.description);
@@ -361,6 +364,7 @@ export function buildCardsOverview(rawInput: CardsInput) {
                     billId: t.billId ?? null,
                     billForecast: t.billForecast ?? null,
                     isPayment: isBillPayment(t),
+                    isCarryover: isCarryover(t),
                     planKey: t.totalInstallments && t.totalInstallments > 1 ? `${merchantKey(t)}|${t.totalInstallments}` : null,
                     installmentNumber: t.installmentNumber,
                     totalInstallments: t.totalInstallments,

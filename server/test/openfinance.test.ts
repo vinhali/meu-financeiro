@@ -167,7 +167,7 @@ test('segunda sincronização é idempotente, atualiza valores, remove pendentes
     authCalls: 0,
     loansStatus: 400,
     transactions: {
-      // t-pending sumiu; t1 teve a descrição corrigida pelo banco.
+      // t-pending sumiu; c-future (parcela futura) deixou de ser listada; t1 teve a descrição corrigida.
       'acc-bank': [tx('t1', { description: 'PIX enviado - João' }), tx('t2', { type: 'CREDIT', amount: 5000 })],
       'acc-card': [tx('c1', { accountId: 'acc-card', amount: 99.9 })],
     },
@@ -185,14 +185,29 @@ test('segunda sincronização é idempotente, atualiza valores, remove pendentes
   const cardCall = state.calls.find((c) => c.includes('/v2/transactions?accountId=acc-card'))!;
   assert.match(cardCall, /dateFrom=2026-08-20/, 'parcelas futuras não empurram a janela para o futuro');
 
-  assert.equal(await prisma.ofTransaction.count(), 4);
-  assert.equal(await prisma.ofTransaction.count({ where: { id: 't-pending' } }), 0);
+  assert.equal(await prisma.ofTransaction.count(), 3);
+  assert.equal(await prisma.ofTransaction.count({ where: { id: { in: ['t-pending', 'c-future'] } } }), 0);
   assert.equal((await prisma.ofTransaction.findUniqueOrThrow({ where: { id: 't1' } })).description, 'PIX enviado - João');
   assert.equal(await prisma.ofLoan.count(), 1, 'falha em um produto não apaga o que já existia');
   assert.equal(await prisma.ofAccount.count(), 2);
 
   const runs = await prisma.ofSyncRun.findMany({ orderBy: { startedAt: 'asc' } });
   assert.deepEqual(runs.map((r) => r.status), ['success', 'partial']);
+});
+
+test('parcela futura que o banco deixou de listar (antecipada) é removida; as demais ficam', async () => {
+  const now = new Date('2026-10-04T12:00:00.000Z');
+  const card = (id: string, date: string) => tx(id, { accountId: 'acc-card', amount: 50, date });
+  const state = (txs: ReturnType<typeof tx>[]): FakeState => ({ calls: [], authCalls: 0, loansStatus: 400, transactions: { 'acc-bank': [tx('t1'), tx('t2', { type: 'CREDIT', amount: 5000 })], 'acc-card': txs } });
+  const sync = (s: FakeState) => syncConnection(prisma, new PluggyClient({ clientId: 'id', clientSecret: 'secret', baseUrl: 'https://pluggy.test', fetchImpl: fakePluggy(s) }), ITEM, 'cli', now);
+
+  await sync(state([card('c1', '2026-10-01T12:00:00.000Z'), card('c-dez', '2026-12-01T12:00:00.000Z'), card('c-jan', '2027-01-01T12:00:00.000Z')]));
+  assert.equal(await prisma.ofTransaction.count({ where: { id: { in: ['c-dez', 'c-jan'] } } }), 2);
+
+  // Antecipou a parcela de dezembro: o banco a lança hoje e para de listar a futura.
+  await sync(state([card('c1', '2026-10-01T12:00:00.000Z'), card('c-antecipada', '2026-10-04T10:00:00.000Z'), card('c-jan', '2027-01-01T12:00:00.000Z')]));
+  const left = (await prisma.ofTransaction.findMany({ where: { accountId: 'acc-card' }, select: { id: true } })).map((t) => t.id).sort();
+  assert.deepEqual(left, ['c-antecipada', 'c-jan', 'c1']);
 });
 
 test('item inexistente vira erro registrado, sem lançar exceção', async () => {

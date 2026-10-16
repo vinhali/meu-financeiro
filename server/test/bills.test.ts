@@ -241,3 +241,38 @@ test('parte parcelada da fatura aberta: parcelas já lançadas mais as projetada
   // Seguintes: A (parcelas 4 a 6) e B (2 e 3).
   assert.deepEqual(r.upcoming.slice(0, 3), [{ dueMonth: '2026-12', amount: 150 }, { dueMonth: '2027-01', amount: 150 }, { dueMonth: '2027-02', amount: 100 }]);
 });
+
+test('fatura paga depois do vencimento: o saldo levado para o ciclo seguinte não conta duas vezes', () => {
+  // Padrão do Nubank: a fatura de 5.000,00 venceu em 06/10 e foi paga em 08/10. O banco listou o
+  // pagamento na fatura antiga e também lançou, no ciclo novo, "Saldo em atraso" (débito) e o
+  // mesmo pagamento (crédito), além de multa e juros. Depois, mais dois pagamentos no ciclo.
+  const now = new Date('2026-10-16T15:00:00.000Z');
+  const last = bill({ dueDate: day('2026-10-06'), closingDate: day('2026-09-29'), totalAmountCents: 500000n, paymentsCents: 500000 + 299500 + 150000 });
+  const nov = { billForecast: '2026-11' };
+  const result = computeBills(
+    [last],
+    [
+      tx('2026-09-20', 500000, { billId: 'last', billForecast: '2026-10' }),
+      tx('2026-10-01', 50000, nov),
+      tx('2026-10-08', -500000, { billId: 'last', isPayment: true }),
+      tx('2026-10-08', -500000, { ...nov, isPayment: true }),
+      tx('2026-10-09', 500000, { ...nov, isCarryover: true }),
+      tx('2026-10-09', 10000, nov),
+      tx('2026-10-10', 600000, nov),
+      tx('2026-10-14', -299500, { ...nov, isPayment: true }),
+      tx('2026-10-14', -150000, { ...nov, isPayment: true }),
+    ],
+    now,
+  );
+  // O que o banco cobra em novembro é a soma do ciclo: 500 + 100,00 + 6.000 − 2.995,00 − 1.500,00.
+  assert.equal(result.closed, null);
+  assert.equal(result.open!.amount, 2105);
+});
+
+test('saldo levado só vale para a fatura que o gerou: sem ele, o pagamento quita a fatura antiga normalmente', () => {
+  const now = new Date('2026-10-16T15:00:00.000Z');
+  const last = bill({ dueDate: day('2026-10-26'), closingDate: day('2026-10-16'), totalAmountCents: 100000n, paymentsCents: 0 });
+  const result = computeBills([last], [tx('2026-10-10', 100000, { billId: 'last', billForecast: '2026-10' }), tx('2026-10-17', 30000, { billForecast: '2026-11' })], now);
+  assert.equal(result.closed!.amount, 1000);
+  assert.equal(result.open!.amount, 300);
+});

@@ -43,14 +43,14 @@ test('conta fixa: avisa quando passou do dia de costume e nenhum banco mostra; p
     itemId: 'emp',
     name: 'Empréstimo Nubank',
     type: 'fixed',
-    months: [{ planned: 1236, paid, previous: { amount: 1232.28, date: previousDate } }, { planned: 1236 }],
+    months: [{ planned: 1190, paid, previous: { amount: 1186.28, date: previousDate } }, { planned: 1190 }],
   });
   // Mês passado saiu dia 04; hoje é dia 08 (mais de 2 dias depois).
   const late = evaluateAlerts(base({ rows: [row('2026-09-04')] }));
   assert.deepEqual(late.map((a) => a.key), ['late:emp:2026-10']);
-  assert.match(late[0].body, /dia 04 .*04\/09.*R\$ 1\.236,00/);
+  assert.match(late[0].body, /dia 04 .*04\/09.*R\$ 1\.190,00/);
   assert.deepEqual(keys(base({ rows: [row('2026-09-07')] })), []);
-  assert.deepEqual(keys(base({ rows: [row('2026-09-04', { amount: 1236, date: '2026-10-05' })] })), []);
+  assert.deepEqual(keys(base({ rows: [row('2026-09-04', { amount: 1190, date: '2026-10-05' })] })), []);
 });
 
 test('limites do ciclo em andamento: ritmo, perto e estourado; ciclo encerrado não avisa', () => {
@@ -70,15 +70,15 @@ test('limites do ciclo em andamento: ritmo, perto e estourado; ciclo encerrado n
 test('dinheiro em conta abaixo do que vence em 7 dias é urgente; suficiente, não', () => {
   const rows = [
     { itemId: 'nu', name: 'Nu Bank (fatura)', type: 'cardBill', months: [{ suggested: 4000, billState: 'closed', dueDate: '2026-10-12' }, {}] },
-    { itemId: 'alu', name: 'Aluguel', type: 'fixed', months: [{ planned: 3663, paid: null, previous: { amount: 3660, date: '2026-09-10' } }, { planned: 3663 }] },
+    { itemId: 'alu', name: 'Aluguel', type: 'fixed', months: [{ planned: 3480, paid: null, previous: { amount: 3477, date: '2026-09-10' } }, { planned: 3480 }] },
     // Vence só em 20 dias: fora da janela.
     { itemId: 'c6', name: 'C6 Bank (fatura)', type: 'cardBill', months: [{ suggested: 900, billState: 'closed', dueDate: '2026-10-28' }, {}] },
   ];
-  assert.deepEqual(dueSoon(base({ rows }), 7), [{ name: 'Aluguel', day: '2026-10-10', amount: 3663 }, { name: 'Nu Bank (fatura)', day: '2026-10-12', amount: 4000 }]);
+  assert.deepEqual(dueSoon(base({ rows }), 7), [{ name: 'Aluguel', day: '2026-10-10', amount: 3480 }, { name: 'Nu Bank (fatura)', day: '2026-10-12', amount: 4000 }]);
   const short = evaluateAlerts(base({ rows, cash: { total: 5000 } })).find((a) => a.kind === 'cash');
   assert.equal(short?.severity, 'urgent');
   assert.equal(short?.key, 'cash7:2026-10-s2');
-  assert.match(short!.body, /Faltam R\$ 2\.663,00/);
+  assert.match(short!.body, /Faltam R\$ 2\.480,00/);
   assert.equal(evaluateAlerts(base({ rows, cash: { total: 9000 } })).some((a) => a.kind === 'cash'), false);
 });
 
@@ -159,14 +159,14 @@ test('resumo diário traz saldo, vencimentos, limites, compras, fechamento de ca
 
 test('totais do mês no servidor batem com os da planilha (mesmas regras do cliente)', () => {
   const items: TotalsItem[] = [
-    { id: 'sal', name: 'Salário', section: 'entrada', controllable: false, values: [9692.45, 9692.45] },
-    { id: 'adi', name: 'Adiantamento dia 20', section: 'entrada', controllable: false, values: [1055.68, 1055.68] },
-    { id: 'alu', name: 'Aluguel', section: 'saida', controllable: false, values: [3663, 3663] },
-    { id: 'fies', name: 'Financiamento Estudantil', section: 'saida', controllable: false, values: [358.91, 360] },
+    { id: 'sal', name: 'Salário', section: 'entrada', controllable: false, values: [8750.30, 8750.30] },
+    { id: 'adi', name: 'Adiantamento dia 20', section: 'entrada', controllable: false, values: [980.40, 980.40] },
+    { id: 'alu', name: 'Aluguel', section: 'saida', controllable: false, values: [3480, 3480] },
+    { id: 'fies', name: 'Financiamento Estudantil', section: 'saida', controllable: false, values: [341.27, 360] },
     { id: 'yt', name: 'Youtube', section: 'saida', controllable: false, values: [26.9, 26.9] },
     { id: 'g1', name: 'Google One', section: 'saida', controllable: false, values: [9.99, 9.99] },
     { id: 'gas', name: 'Gás', section: 'saida', controllable: false, values: [35, 35] },
-    { id: 'nu', name: 'Nu Bank (fatura)', section: 'saida', controllable: false, values: [6000, 962.4] },
+    { id: 'nu', name: 'Nu Bank (fatura)', section: 'saida', controllable: false, values: [6000, 874.1] },
     { id: 'ali', name: 'Alimentação', section: 'saida', controllable: true, values: [1800, 1800] },
     { id: 'soc', name: 'Despesas Sociais', section: 'saida', controllable: true, values: [500, 600] },
   ];
@@ -179,8 +179,8 @@ test('totais do mês no servidor batem com os da planilha (mesmas regras do clie
     // Reconhecida só pelo valor, e marcada à mão: nenhuma das duas sai do total.
     { itemId: 'g1', type: 'fixed', months: [{ paid: { onCard: true, billRow: true, byAmount: true, differs: false } }, {}] },
     { itemId: 'gas', type: 'fixed', months: [{ paid: { onCard: false, manual: 'pending', differs: false } }, {}] },
-    { itemId: 'nu', type: 'cardBill', months: [{ suggested: 6914.2, billState: 'closed' }, { suggested: 2606.92, billState: 'projected' }] },
-    { itemId: 'ali', type: 'limit', months: [{ state: 'current', actual: 1118.67, offBill: 0, accountInMonth: 48.85 }, { state: 'future', actual: 0 }] },
+    { itemId: 'nu', type: 'cardBill', months: [{ suggested: 5832.6, billState: 'closed' }, { suggested: 2381.55, billState: 'projected' }] },
+    { itemId: 'ali', type: 'limit', months: [{ state: 'current', actual: 1157.85, offBill: 0, accountInMonth: 48.85 }, { state: 'future', actual: 0 }] },
     { itemId: 'soc', type: 'limit', months: [{ state: 'past', actual: 700, offBill: 20, accountInMonth: 0 }, {}] },
   ];
 
@@ -200,10 +200,10 @@ test('totais do mês no servidor batem com os da planilha (mesmas regras do clie
   assert.deepEqual(server.map((m) => m.entradas), client.entradasTotais.map(cents));
   assert.deepEqual(server.map((m) => m.saidas), client.saidasTotais.map(cents));
   assert.deepEqual(server.map((m) => m.subtotal), client.subtotal.map(cents));
-  // E o valor em si, para o caso de as duas errarem juntas. Entradas: 9.692,45 + (1.055,68 - 358,91).
-  // Saídas: aluguel 3.663 + Google One 9,99 + gás 35 + fatura 6.914,20 + alimentação (681,33 que faltam
+  // E o valor em si, para o caso de as duas errarem juntas. Entradas: 8.750,30 + (980,40 - 341,27).
+  // Saídas: aluguel 3.480 + Google One 9,99 + gás 35 + fatura 5.832,60 + alimentação (642,15 que faltam
   // + 48,85 da conta) + sociais 20 (cartão sem linha de fatura).
-  assert.deepEqual(server[0], { entradas: 10389.22, saidas: 11372.37, subtotal: -983.15 });
+  assert.deepEqual(server[0], { entradas: 9389.43, saidas: 10068.59, subtotal: -679.16 });
 });
 
 test('canais: endereço mascarado, conversa privada do Telegram, erro sem o token', async () => {

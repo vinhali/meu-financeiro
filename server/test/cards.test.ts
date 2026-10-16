@@ -205,8 +205,8 @@ test('intervalo personalizado é inclusivo, limitado a hoje, e a média usa só 
 
 test('compra estornada sai do gasto; tarifa estornada zera o custo; "sem juros" é compra', () => {
   const o = overview([
-    tx({ description: 'ALUGUEL DE CARRO', amountCents: 247732n, date: new Date('2026-08-10T15:00:00.000Z'), category: 'Travel', categoryId: '12000000' }),
-    tx({ type: 'CREDIT', description: 'Estorno de compra', amountCents: -247732n, date: new Date('2026-08-20T15:00:00.000Z'), operationType: 'ESTORNO' }),
+    tx({ description: 'ALUGUEL DE CARRO', amountCents: 221075n, date: new Date('2026-08-10T15:00:00.000Z'), category: 'Travel', categoryId: '12000000' }),
+    tx({ type: 'CREDIT', description: 'Estorno de compra', amountCents: -221075n, date: new Date('2026-08-20T15:00:00.000Z'), operationType: 'ESTORNO' }),
     tx({ description: 'MERCADO', amountCents: 10000n, category: 'Groceries', categoryId: '10000000' }),
     ...['2026-07', '2026-08', '2026-09'].flatMap((m) => [
       tx({ description: 'Tarifa Anuidade', amountCents: 9800n, date: new Date(`${m}-23T15:00:00.000Z`), category: 'Credit card fees', categoryId: '16030000' }),
@@ -217,7 +217,7 @@ test('compra estornada sai do gasto; tarifa estornada zera o custo; "sem juros" 
     tx({ description: 'COMPRA A VISTA SEM JUROS MASTERCARD', amountCents: 999n, category: 'Interests charged', categoryId: '02020000' }),
   ]);
   assert.equal(o.totals.spent, 109.99);
-  assert.deepEqual([o.totals.refundedPurchases, o.totals.refundedCount, o.totals.otherCredits], [2477.32, 1, 0]);
+  assert.deepEqual([o.totals.refundedPurchases, o.totals.refundedCount, o.totals.otherCredits], [2210.75, 1, 0]);
   assert.deepEqual(o.costs, [
     { label: 'IOF', charged: 20, refunded: 5, net: 15 },
     { label: 'Tarifas do cartão', charged: 294, refunded: 294, net: 0 },
@@ -325,7 +325,7 @@ test('marca conhecida corrige a categoria e aparece na composição dela', () =>
     transactions: [
       tx({ description: 'TOTALPASS', amountCents: 14990n, category: 'Wellness and fitness', categoryId: '07030000' }),
       tx({ description: 'DROGASIL 123', amountCents: 5000n, category: 'Pharmacy', categoryId: '18020000' }),
-      tx({ description: 'BRADESCO', amountCents: 37273n, category: 'Insurance', categoryId: '20000000' }),
+      tx({ description: 'BRADESCO', amountCents: 31844n, category: 'Insurance', categoryId: '20000000' }),
     ],
   });
   const saude = o.byCategory.find((c) => c.label === 'Saúde');
@@ -338,7 +338,7 @@ test('marca conhecida corrige a categoria e aparece na composição dela', () =>
     { name: 'Drogasil 123', total: 50 },
   ]);
   assert.ok(!o.byCategory.some((c) => c.label === 'Serviços'));
-  assert.deepEqual(o.topMerchants[0], { key: 'BRADESCO', name: 'Bradesco Seguros', kind: 'seguro do carro', total: 372.73, count: 1 });
+  assert.deepEqual(o.topMerchants[0], { key: 'BRADESCO', name: 'Bradesco Seguros', kind: 'seguro do carro', total: 318.44, count: 1 });
 });
 
 test('período "fatura atual": do dia seguinte ao último fechamento até hoje', () => {
@@ -458,8 +458,8 @@ test('parcelamento: cada plano tem a sua etiqueta, mesmo no mesmo estabeleciment
     months: 1,
     now: new Date('2026-10-05T15:00:00.000Z'),
     bills: [],
-    transactions: [row('a', 50396, 6, 18), row('b', 36807, 9, 24)],
-    userLabels: { [planLabelKey('card', 'FULANO SILVA', 18, 50396)]: { name: 'Notebook', kind: null } },
+    transactions: [row('a', 47210, 6, 18), row('b', 33945, 9, 24)],
+    userLabels: { [planLabelKey('card', 'FULANO SILVA', 18, 47210)]: { name: 'Notebook', kind: null } },
   });
   const plans = o.installments.active.map((p) => [p.label, p.name, p.totalInstallments]);
   assert.deepEqual(plans.sort((x, y) => Number(x[2]) - Number(y[2])), [['Notebook', 'Fulano Silva', 18], [null, 'Fulano Silva', 24]]);
